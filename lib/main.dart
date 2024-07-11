@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 
 import 'ui/screens/home.dart';
+import 'ui/widgets/chat_message_widget.dart';
 
 void main() {
   runApp(const MyApp());
