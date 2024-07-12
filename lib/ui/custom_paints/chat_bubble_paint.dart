@@ -6,15 +6,16 @@ class ChatBubblePainter extends CustomPainter {
   final Alignment alignment;
   final bool tail;
   final String text;
+  final double _radius;
 
   ChatBubblePainter({
     required this.color,
     required this.alignment,
     required this.tail,
     required this.text,
-  });
+    required double radius,
+  }) : _radius = radius;
 
-  final double _radius = 10.0;
   final double _padding = 15.0;
 
   @override
@@ -23,11 +24,10 @@ class ChatBubblePainter extends CustomPainter {
     double h = size.height;
 
     Paint paint = Paint()
-      // ..color = color;
       ..shader = ui.Gradient.linear(
         Offset(w / 2, 0),
         Offset(w / 2, h),
-        [Colors.lightBlue, Colors.blue],
+        [Colors.blue, const Color(0xff147efb)],
       );
 
     Path path = Path();
@@ -85,7 +85,6 @@ class ChatBubblePainter extends CustomPainter {
     canvas.clipPath(path);
     canvas.drawPath(path, paint);
 
-    // Paint text
     TextPainter textPainter = TextPainter(
       text: TextSpan(
         text: text,
