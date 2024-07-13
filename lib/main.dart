@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart';
-
-import 'ui/screens/home.dart';
-import 'ui/widgets/chat_message_widget.dart';
+import 'package:provider/provider.dart';
+import 'package:socket_client/models/chat_bubble.dart';
+import 'helper/double_linkedlist.dart';
+import 'ui/screens/home/home.dart';
 
 void main() {
-  runApp(const MyApp());
+  runApp(ChangeNotifierProvider(
+      create: (context) => DoubleLinkedList<ChatBubble>(),
+      child: const MyApp()));
 }
 
 class MyApp extends StatelessWidget {

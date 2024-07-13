@@ -24,11 +24,17 @@ class ChatBubblePainter extends CustomPainter {
     double h = size.height;
 
     Paint paint = Paint()
-      ..shader = ui.Gradient.linear(
-        Offset(w / 2, 0),
-        Offset(w / 2, h),
-        [Colors.blue, const Color(0xff147efb)],
-      );
+      ..shader = alignment == Alignment.topRight
+          ? ui.Gradient.linear(
+              Offset(w / 2, 0),
+              Offset(w / 2, h),
+              [Colors.blue, const Color(0xff147efb)],
+            )
+          : ui.Gradient.linear(
+              Offset(w / 2, 0),
+              Offset(w / 2, h),
+              [Colors.grey.withOpacity(0.5), Colors.grey.withOpacity(0.5)],
+            );
 
     Path path = Path();
 
