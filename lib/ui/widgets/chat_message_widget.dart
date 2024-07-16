@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 
 import '../render_objects/chat_message_ro.dart';
 
-class TimestampedChatMessage extends LeafRenderObjectWidget {
-  const TimestampedChatMessage({
+class ChatMessage extends LeafRenderObjectWidget {
+  const ChatMessage({
     super.key,
     required this.text,
     required this.sentAt,

@@ -19,6 +19,7 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
+  final GlobalKey<AnimatedListState> _listKey = GlobalKey<AnimatedListState>();
   final TextEditingController _chatTextController = TextEditingController();
   late IO.Socket socket;
   final StreamController<String> _chatStreamController =
@@ -80,8 +81,9 @@ class _MyHomePageState extends State<MyHomePage> {
 
       list.append(
           ChatBubble(isServer: isServer, text: text),
-          previousNode?.value.copyWith(
-              tail: previousNode.value.isServer == isServer ? false : true));
+          previousNode?.value.isServer == isServer
+              ? previousNode?.value.copyWith(tail: false)
+              : null);
     }
   }
 
@@ -185,7 +187,7 @@ class _MyHomePageState extends State<MyHomePage> {
             margin: isServer
                 ? const EdgeInsets.fromLTRB(40, 7, 17, 7)
                 : const EdgeInsets.fromLTRB(17, 7, 40, 7),
-            child: TimestampedChatMessage(
+            child: ChatMessage(
               text: (bubble.text).isEmpty ? "  " : bubble.text,
               sentAt: "",
               style: TextStyle(

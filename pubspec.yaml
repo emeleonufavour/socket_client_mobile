@@ -37,6 +37,7 @@ dependencies:
   flutter_svg: ^2.0.10+1
   socket_io_client: ^2.0.3+1
   provider: ^6.1.2
+  flutter_animate: ^4.5.0
 
 dev_dependencies:
   flutter_test:

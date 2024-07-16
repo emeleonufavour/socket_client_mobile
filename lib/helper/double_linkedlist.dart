@@ -20,7 +20,7 @@ class DoubleLinkedList<T> extends ChangeNotifier {
       updateLeft(newNode,
           newValue: newPreviousNodeValue ?? newNode.prev!.value);
     }
-    // notifyListeners();
+    notifyListeners();
   }
 
   Node<T>? find(T value) {
