@@ -36,7 +36,7 @@ class _MyHomePageState extends State<MyHomePage> {
   void initState() {
     super.initState();
     _configureSocket();
-    _scrollController.addListener(_onScroll);
+    // _scrollController.addListener(_onScroll);
   }
 
   @override
@@ -50,12 +50,22 @@ class _MyHomePageState extends State<MyHomePage> {
 
   void performBubbleAnimationFromTextField(
       BuildContext context, ChatBubble bubble, bool isServer) {
+    final RenderBox? listRenderBox =
+        _listKey.currentContext?.findRenderObject() as RenderBox?;
+
+    if (listRenderBox == null) {
+      log("Couldn't find the ListView render box");
+      return;
+    }
+
+    final listEndPosition = listRenderBox.size.height;
     final bubblePosition = Offset(MediaQuery.sizeOf(context).width / 3.5,
         MediaQuery.sizeOf(context).height / 1.12);
-    final middlePosition = Offset(MediaQuery.sizeOf(context).width / 1.5,
-        MediaQuery.sizeOf(context).height / 1.5);
-    final position = Offset(MediaQuery.sizeOf(context).width / 1.2,
-        MediaQuery.sizeOf(context).height / 4);
+    final middlePosition =
+        Offset(MediaQuery.sizeOf(context).width / 1.5, listEndPosition + 100);
+
+    final position =
+        Offset(MediaQuery.sizeOf(context).width / 1.2, listEndPosition);
 
     _overlayEntry = OverlayEntry(
         builder: (context) => AnimatedBubble(
@@ -70,18 +80,6 @@ class _MyHomePageState extends State<MyHomePage> {
             bubble: bubble));
 
     Overlay.of(context).insert(_overlayEntry!);
-  }
-
-  void _onScroll() {
-    if (_scrollController.position.atEdge) {
-      bool isTop = _scrollController.position.pixels == 0;
-      if (isTop) {
-        log("Scrolled to the top");
-      } else {
-        log("Scrolled to the end");
-        // Here you can trigger an action when the user reaches the end
-      }
-    }
   }
 
   void _configureSocket() {
@@ -203,6 +201,7 @@ class _MyHomePageState extends State<MyHomePage> {
                 }
                 return AnimatedList(
                   key: _listKey,
+                  controller: _scrollController,
                   reverse: false,
                   initialItemCount: _getChatCount(list),
                   itemBuilder: (context, index, animation) {
@@ -229,7 +228,7 @@ class _MyHomePageState extends State<MyHomePage> {
   Widget _buildMessageBubble(
       ChatBubble bubble, Animation<double> animation, int index) {
     bool isServer = bubble.isServer;
-    _bubbleKeys[index] = _bubbleKeys[index] ?? GlobalKey();
+    final chatBubbleKey = _bubbleKeys[index] ??= GlobalKey();
     return Padding(
       padding: const EdgeInsets.only(top: 2.0, right: 1.0, bottom: 3.0),
       child: Align(
@@ -245,6 +244,7 @@ class _MyHomePageState extends State<MyHomePage> {
           child: FadeTransition(
             opacity: animation,
             child: AnimatedContainer(
+              key: chatBubbleKey,
               duration: _animationDuration,
               child: CustomPaint(
                 painter: ChatBubblePainter(
@@ -255,7 +255,6 @@ class _MyHomePageState extends State<MyHomePage> {
                   text: "",
                 ),
                 child: Container(
-                  key: _bubbleKeys[index],
                   constraints: BoxConstraints(
                     maxWidth: MediaQuery.of(context).size.width * .7,
                   ),
