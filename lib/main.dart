@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:provider/provider.dart';
 import 'package:socket_client/models/chat_bubble.dart';
 import 'helper/double_linkedlist.dart';
 import 'ui/screens/home/home.dart';
 
 void main() {
+  debugPaintSizeEnabled = false;
   runApp(ChangeNotifierProvider(
       create: (context) => DoubleLinkedList<ChatBubble>(),
       child: const MyApp()));
