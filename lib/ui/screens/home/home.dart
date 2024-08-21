@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:developer';
+import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -21,6 +22,7 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
+  final player = AudioPlayer();
   final GlobalKey<AnimatedListState> _listKey = GlobalKey<AnimatedListState>();
   OverlayEntry? _overlayEntry;
   final GlobalKey bubbleKey = GlobalKey();
@@ -31,11 +33,20 @@ class _MyHomePageState extends State<MyHomePage> {
   final ScrollController _scrollController = ScrollController();
   final _animationDuration = const Duration(milliseconds: 400);
   final Map<int, GlobalKey> _bubbleKeys = {};
+  final GlobalKey _appBarKey = GlobalKey();
+  int _characterCount = 0;
+  int maxTextForBubble = 27;
 
   @override
   void initState() {
     super.initState();
     _configureSocket();
+    _chatTextController.addListener(() {
+      setState(() {
+        _characterCount = _chatTextController.text.length;
+        log("character count => $_characterCount");
+      });
+    });
     // _scrollController.addListener(_onScroll);
   }
 
@@ -48,36 +59,80 @@ class _MyHomePageState extends State<MyHomePage> {
     super.dispose();
   }
 
+  double _getUnitTextWidth() {
+    final TextPainter textPainter = TextPainter(
+      text: const TextSpan(text: "o", style: TextStyle(fontSize: 16)),
+      maxLines: 1,
+      textDirection: TextDirection.ltr,
+    )..layout(minWidth: 0, maxWidth: double.infinity);
+
+    return textPainter.size.width;
+  }
+
   void performBubbleAnimationFromTextField(
       BuildContext context, ChatBubble bubble, bool isServer) {
-    final RenderBox? listRenderBox =
-        _listKey.currentContext?.findRenderObject() as RenderBox?;
+    final size = MediaQuery.sizeOf(context);
+    final chatCount =
+        _getChatCount(context.read<DoubleLinkedList<ChatBubble>>());
+    Offset initialbubblePosition = Offset(
+        MediaQuery.sizeOf(context).width / 3.4,
+        MediaQuery.sizeOf(context).height / 1.10);
 
-    if (listRenderBox == null) {
-      log("Couldn't find the ListView render box");
-      return;
+    Offset? endPosition;
+    if (chatCount == 0) {
+      final RenderBox? appBarRenderBox =
+          _appBarKey.currentContext?.findRenderObject() as RenderBox?;
+
+      if (appBarRenderBox == null) {
+        log("Couldn't find the  App bar render box");
+        return;
+      }
+
+      endPosition = appBarRenderBox.localToGlobal(Offset.zero);
+    } else {
+      final previousChatBubbleKey = _bubbleKeys[chatCount - 1];
+      final previousChatBubbleRenderBox =
+          previousChatBubbleKey?.currentState?.context.findRenderObject()
+              as RenderBox?;
+
+      if (previousChatBubbleRenderBox == null) {
+        log("Couldn't find the  chat bubble render box");
+        return;
+      }
+
+      endPosition = previousChatBubbleRenderBox.localToGlobal(Offset.zero);
     }
 
-    final listEndPosition = listRenderBox.size.height;
-    final bubblePosition = Offset(MediaQuery.sizeOf(context).width / 3.5,
-        MediaQuery.sizeOf(context).height / 1.12);
-    final middlePosition =
-        Offset(MediaQuery.sizeOf(context).width / 1.5, listEndPosition + 100);
+    double? endBubbleXPosition;
+    double unitTextWidth = _getUnitTextWidth();
 
-    final position =
-        Offset(MediaQuery.sizeOf(context).width / 1.2, listEndPosition);
+    if (_characterCount < maxTextForBubble) {
+      endBubbleXPosition = (size.width - ((unitTextWidth * _characterCount)));
+    } else {
+      endBubbleXPosition = (size.width - ((unitTextWidth * maxTextForBubble)));
+    }
 
-    _overlayEntry = OverlayEntry(
-        builder: (context) => AnimatedBubble(
-            startPosition: bubblePosition,
-            middlePosition: middlePosition,
-            endPosition: position,
-            onComplete: () {
-              _overlayEntry?.remove();
-              _overlayEntry = null;
-            },
-            isServer: isServer,
-            bubble: bubble));
+    Offset middlePosition = Offset(
+        endBubbleXPosition,
+        ((initialbubblePosition.dy - endPosition.dy) * 0.95) +
+            (size.height - initialbubblePosition.dy));
+    // log("Init position => $initialbubblePosition");
+    // log("Middle position => $middlePosition");
+    // log("End X position => $endBubbleXPosition || full width => ${size.width}");
+    // log("End Y position => ${endPosition.dy + 100}|| full height => ${size.height}");
+
+    _overlayEntry = OverlayEntry(builder: (context) {
+      return AnimatedBubble(
+          startPosition: initialbubblePosition,
+          middlePosition: middlePosition,
+          endPosition: Offset(endBubbleXPosition!, endPosition!.dy + 100),
+          onComplete: () {
+            _overlayEntry?.remove();
+            _overlayEntry = null;
+          },
+          isServer: isServer,
+          bubble: bubble);
+    });
 
     Overlay.of(context).insert(_overlayEntry!);
   }
@@ -109,16 +164,18 @@ class _MyHomePageState extends State<MyHomePage> {
     });
   }
 
-  void _sendMessage(BuildContext context, ChatBubble bubble, bool isServer) {
-    Future.delayed(const Duration(milliseconds: 500), () {
+  Future<void> _sendMessage(
+      BuildContext context, ChatBubble bubble, bool isServer) async {
+    Future.delayed(const Duration(milliseconds: 300), () {
       if (_chatTextController.text.isNotEmpty && context.mounted) {
         _addMessage(false, _chatTextController.text, context);
+
         socket.emit('client', _chatTextController.text);
         _chatTextController.clear();
       }
     });
-
     performBubbleAnimationFromTextField(context, bubble, isServer);
+    await player.play(AssetSource("sound/send_chat.wav"));
   }
 
   void _addMessage(bool isServer, String text, BuildContext context) {
@@ -162,6 +219,7 @@ class _MyHomePageState extends State<MyHomePage> {
   Widget build(BuildContext context) {
     final list = Provider.of<DoubleLinkedList<ChatBubble>>(context);
     return Scaffold(
+      backgroundColor: Color(0xff121212),
       appBar: GlassAppBar(
         toolBarHeight: MediaQuery.sizeOf(context).height * 0.1,
         leading: const Icon(
@@ -179,10 +237,11 @@ class _MyHomePageState extends State<MyHomePage> {
             )
           ],
         ),
-        actions: const [
+        actions: [
           Padding(
             padding: EdgeInsets.symmetric(horizontal: 15),
             child: Icon(
+              key: _appBarKey,
               CupertinoIcons.video_camera,
               size: 40,
               color: Colors.blue,
@@ -233,42 +292,30 @@ class _MyHomePageState extends State<MyHomePage> {
       padding: const EdgeInsets.only(top: 2.0, right: 1.0, bottom: 3.0),
       child: Align(
         alignment: isServer ? Alignment.centerLeft : Alignment.centerRight,
-        child: SlideTransition(
-          position: Tween<Offset>(
-            begin: const Offset(0, 1),
-            end: const Offset(0, 0),
-          ).animate(CurvedAnimation(
-            parent: animation,
-            curve: Curves.easeOut,
-          )),
-          child: FadeTransition(
-            opacity: animation,
-            child: AnimatedContainer(
-              key: chatBubbleKey,
-              duration: _animationDuration,
-              child: CustomPaint(
-                painter: ChatBubblePainter(
-                  color: isServer ? Colors.grey : Colors.blue,
-                  alignment: isServer ? Alignment.topLeft : Alignment.topRight,
-                  tail: bubble.tail,
-                  radius: bubble.text == "" ? 12 : 15,
-                  text: "",
-                ),
-                child: Container(
-                  constraints: BoxConstraints(
-                    maxWidth: MediaQuery.of(context).size.width * .7,
-                  ),
-                  margin: isServer
-                      ? const EdgeInsets.fromLTRB(40, 7, 17, 7)
-                      : const EdgeInsets.fromLTRB(17, 7, 40, 7),
-                  child: ChatMessage(
-                    text: (bubble.text).isEmpty ? "  " : bubble.text,
-                    sentAt: "",
-                    style: TextStyle(
-                      color: isServer ? Colors.black : Colors.white,
-                      fontSize: 18,
-                    ),
-                  ),
+        child: AnimatedContainer(
+          key: chatBubbleKey,
+          duration: _animationDuration,
+          child: CustomPaint(
+            painter: ChatBubblePainter(
+              color: isServer ? Colors.grey : Colors.blue,
+              alignment: isServer ? Alignment.topLeft : Alignment.topRight,
+              tail: bubble.tail,
+              radius: bubble.text == "" ? 12 : 15,
+              text: "",
+            ),
+            child: Container(
+              constraints: BoxConstraints(
+                maxWidth: MediaQuery.of(context).size.width * .7,
+              ),
+              margin: isServer
+                  ? const EdgeInsets.fromLTRB(40, 7, 17, 7)
+                  : const EdgeInsets.fromLTRB(17, 7, 40, 7),
+              child: ChatMessage(
+                text: (bubble.text).isEmpty ? "  " : bubble.text,
+                sentAt: "",
+                style: TextStyle(
+                  color: isServer ? Colors.black : Colors.white,
+                  fontSize: 18,
                 ),
               ),
             ),
@@ -307,14 +354,18 @@ class _MyHomePageState extends State<MyHomePage> {
           ),
           Expanded(
             child: CupertinoTextField(
+              // maxLines: null,
+              // minLines: 1,
               controller: _chatTextController,
               placeholder: "iMessage",
+              placeholderStyle: TextStyle(fontSize: 16, color: Colors.white),
+              style: const TextStyle(fontSize: 16, color: Colors.white),
               decoration: BoxDecoration(
                 border:
                     Border.all(color: Colors.grey.withOpacity(0.5), width: 2),
                 borderRadius: const BorderRadius.all(Radius.circular(17)),
               ),
-              onSubmitted: (value) => _sendMessage(
+              onSubmitted: (value) async => await _sendMessage(
                   context, ChatBubble(isServer: false, text: value), false),
             ),
           ),

@@ -23,6 +23,9 @@ class DoubleLinkedList<T> extends ChangeNotifier {
     // notifyListeners();
   }
 
+  // Getter to check if the list is empty
+  bool get isEmpty => head == null && tail == null;
+
   Node<T>? find(T value) {
     Node<T>? current = head;
     while (current != null) {

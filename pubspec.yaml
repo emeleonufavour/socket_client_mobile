@@ -38,6 +38,7 @@ dependencies:
   socket_io_client: ^2.0.3+1
   provider: ^6.1.2
   flutter_animate: ^4.5.0
+  audioplayers: ^6.0.0
 
 dev_dependencies:
   flutter_test:
@@ -64,6 +65,8 @@ flutter:
   assets:
     - assets/bitmoji.png
     - assets/appstore.svg
+    - assets/sound/send_chat.wav
+    - assets/sound/receive_chat.wav
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/assets-and-images/#resolution-aware
 
